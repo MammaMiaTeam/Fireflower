@@ -1,0 +1,67 @@
+{
+    "build": {
+
+        "include-directories": [
+            "include"
+        ],
+
+        "source": "source",
+        "filesystem": "data",
+        "output": "NSMB.nds",
+        "toolchain": "tools",
+        "build": "build",
+        "backup": "backup",
+
+        "pre-build": "",
+        "post-build": "rm NSMB.nds && .\\\\nds-build.exe example_build_rules.txt NSMB.nds",
+
+        "executables": {
+            "gcc": "arm-none-eabi-gcc.exe",
+            "ld": "arm-none-eabi-ld.exe"
+        },
+
+        "pedantic": true,
+
+        "flags": {
+            "c++": "-g -Wno-volatile -Wno-register -Wno-multichar -O3 -fomit-frame-pointer -fno-builtin -ffast-math -Wno-unknown-pragmas -DSDK_GCC -DSDK_CW -DSDK_ARM9 -nostdlib -nodefaultlibs -nostartfiles -fno-rtti -fno-exceptions -std=c++20",
+            "c": "-g -Wno-volatile -Wno-register -Wno-multichar -O3 -fomit-frame-pointer -fno-builtin -ffast-math -Wno-unknown-pragmas -DSDK_GCC -DSDK_CW -DSDK_ARM9 -nostdlib -nodefaultlibs -nostartfiles",
+            "asm": "-g -O3 -x assembler-with-cpp -fomit-frame-pointer",
+            "arm9": "-mcpu=arm946e-s -masm-syntax-unified -mno-unaligned-access -mfloat-abi=soft -mabi=aapcs",
+            "arm7": "-mcpu=arm7tdmi -masm-syntax-unified -mno-unaligned-access -mfloat-abi=soft -mabi=aapcs"
+        },
+
+        "symbols7": "symbols7.x",
+        "symbols9": "symbols9.x",
+        "allow-eabi-extensions": false,
+        "library": "ff-gcc/lib/gcc/arm-none-eabi/10.2.1"
+
+    },
+
+    "patch": {
+
+        "arm9": {
+            "reloc": "0x02065F10",
+            "start": "0x021901E0",
+            "end": "0x02380000",
+            "compress": true
+        },
+
+        "arm7": {
+            "reloc": "0x037FCF78",
+            "start": "0x0380BAA8",
+            "end": "0x0380D660",
+            "compress": false
+        }
+
+    },
+
+    "file-id": {
+	
+    },
+
+    "main": {
+
+        "default-target": "arm9"
+
+    }
+}
