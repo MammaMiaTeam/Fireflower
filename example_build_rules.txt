@@ -1,0 +1,17 @@
+rom_header data\header.bin
+arm9_entry KEEP
+arm9_load KEEP
+arm7_entry KEEP
+arm7_load KEEP
+fnt data\fnt.bin
+file_mode ADJUST
+arm9 data\arm9.bin
+arm7 data\arm7.bin
+arm9ovt data\arm9ovt.bin
+arm7ovt data\arm7ovt.bin
+icon data\banner.bin
+rsa_sig data\rsasig.bin
+data data\root
+ovt_repl_flag 0xFF
+ov9 data\overlay9
+ov7 data\overlay7
