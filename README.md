@@ -13,6 +13,7 @@ Fireflower is the most advanced patcher for Nintendo DS games. It works fundamen
 user-friendliness and practicability.
 
 The whole toolchain essentially consists of three programs:
+
 1) nds-extract which allows you to extract nds files
 2) nds-build used to rebuild your nds file (with several FNT configuration options)
 3) fireflower, the main patching program
@@ -22,6 +23,7 @@ The whole toolchain essentially consists of three programs:
 **Patching targets**
 
 Fireflower supports all possible patching targets (targets are locations where raw code can be inserted, not patched):
+
 1) ARM9 binary
 2) ARM9 overlays
 3) ARM7 binary
@@ -38,6 +40,7 @@ I verified that it works without any issues and I was able to inject code on the
 arm7 overlays are pretty special in the sense they (1) are literally in no existing game and (2) their use is fairly limited since the arm7 is usually not exposed to filesystem related functions.
 
 In case someone is brave enough to try it out here's a small guide:
+
 1) Set patching target to `ov7_x` where x is the overlay number
 2) Load the overlay from the arm9 into main ram or shared wram (remember to first map to arm9, then back to arm7)
 3) Notify the arm7 (e.g. via IPC)
@@ -47,6 +50,7 @@ In case someone is brave enough to try it out here's a small guide:
 **Basic patching**
 
 Fireflower adds three hook types:
+
 a) `hook`: Causes a direct branch to your code (generates `b`/`bx`). The replaced instruction is **not** saved. Useful for raw assembly modification.
 
 b) `rlnk`: Causes a function call to your code (generates `bl`/`blx)`. The replaced instruction is **not** saved. Useful to replace function calls.
@@ -71,6 +75,7 @@ over(0x024588AD, 2) unsigned char b[3] = {
 **File IDs**
 
 Fireflower allows you to access any file in the nds tree via file IDs:
+
 1) Add the file in the tree (i.e. `root/test/text.bin`) or use an existing one
 2) Add a symbol to the configuration:
 ```
