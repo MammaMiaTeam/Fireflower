@@ -19,6 +19,31 @@ The whole toolchain essentially consists of three programs:
 
 
 ## Features
+**Patching targets
+
+Fireflower supports all possible patching targets (targets are locations where raw code can be inserted, not patched):
+1) ARM9 binary
+2) ARM9 overlays
+3) ARM7 binary
+4) ARM7 overlays
+
+Targets are specified using the `main` node in the configuration file. You can specify either single files or whole directories to be compiled to a specific target.
+Note that as of now only binary targets are supported. Overlay targets will be supported in a future version.
+
+Cross-processor hooking is *illegal*. From a practical standpoint it wouldn't make any sense anyways since the architechtures don't support the same set of instructions.
+
+Fireflower is the first patcher supporting arm7 targets. **If you ever consider patching the arm7 you're expected to precisely know what you are doing.**
+I verified that it works without any issues and I was able to inject code on the (very limited) arm7 heap, so it shouldn't incur any bugs.
+
+arm7 overlays are pretty special in the sense they (1) are literally in no existing game and (2) their use is fairly limited since the arm7 is usually not exposed to filesystem related functions.
+
+In case someone is brave enough to try it out here's a small guide:
+1) Set patching target to `ov7_x` where x is the overlay number
+2) Load the overlay from the arm9 into main ram or shared wram (remember to first map to arm9, then back to arm7)
+3) Notify the arm7 (e.g. via IPC)
+4) Jump to the newly loaded arm7 overlay (from hooked arm7 code)
+
+
 **Basic patching**
 
 Fireflower adds three hook types:
@@ -57,6 +82,16 @@ Fireflower allows you to access any file in the nds tree via file IDs:
 ```cpp
 unsigned short myFileID = FID::my_file;
 ```
+
+**New keywords**
+Fireflower exposes new keywords to help the user in writing well-defined code:
+`thumb`: Causes the function to get compiled in thumb mode
+
+`asm_func`: Causes the function to remove function prologues/epilogues with the constraint of only allowing inline assembly
+
+`nodisc`: Causes the compiler to not discard the function at higher optimization levels. This is especially important when your function is static and you call it from assembly,
+in which case the compiler cannot detect the reference and therefore discards it.
+
 
 ## Operation
 Fireflower works in a different way compared to already existing patchers. Instead of modifying the .nds in-place you have to extract it first.
