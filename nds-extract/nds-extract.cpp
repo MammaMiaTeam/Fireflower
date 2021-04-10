@@ -23,7 +23,7 @@ namespace fs = std::filesystem;
 				std::cout << DWARNING << "File " << outputPath.string() << " already exists" << std::endl; \
 			}
 
-const unsigned oneGB = 1073741824U;
+constexpr unsigned oneGB = 1073741824U;
 
 typedef std::vector<unsigned char> NitroROM;
 
