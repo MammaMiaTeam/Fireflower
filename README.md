@@ -19,7 +19,7 @@ The whole toolchain essentially consists of three programs:
 
 
 ## Features
-**Patching targets
+**Patching targets**
 
 Fireflower supports all possible patching targets (targets are locations where raw code can be inserted, not patched):
 1) ARM9 binary
