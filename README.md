@@ -59,17 +59,18 @@ c) `safe`: Causes a function call to a thunk that saves all registers. The repla
 program behaviour. Note that this hook type is deprecated and should only be used for backwards-compatibility with NSMBe.
 
 Fireflower also adds a replacement type:
-`over`: Causes the symbol to overwrite code at the specified address. The size of the overwritten area is determined by the symbol size.
+
+`over`: Causes the symbol to overwrite code at the specified address. The size of the overwritten area is determined by the size of the symbol.
 
 Examples:
 ```cpp
 hook(0x02345678) void doSmth(){} 		//Hooks at 0x02345678 in the arm9 binary
-rlnk(0x025673C0, 24) bool execute(){}	//Hooks at 0x025673C0 in arm9 overlay 24
+rlnk(0x025673C0, 24) bool execute(){}		//Hooks at 0x025673C0 in arm9 overlay 24
 
-over(0x02004800) unsigned char a = 4;	//Overwrites one byte at 0x02004800 in the arm9 binary
+over(0x02004800) unsigned char a = 4;		//Overwrites one byte at 0x02004800 in the arm9 binary
 over(0x024588AD, 2) unsigned char b[3] = {
 	1, 2, 3
-};										//Overwrites three bytes at 0x024588AD in arm9 overlay 2
+};						//Overwrites three bytes at 0x024588AD in arm9 overlay 2
 ```
 
 **File IDs**
@@ -90,6 +91,7 @@ unsigned short myFileID = FID::my_file;
 
 **New keywords**
 Fireflower exposes new keywords to help the user in writing well-defined code:
+
 `thumb`: Causes the function to get compiled in thumb mode
 
 `asm_func`: Causes the function to remove function prologues/epilogues with the constraint of only allowing inline assembly
