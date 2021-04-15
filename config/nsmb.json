@@ -33,7 +33,8 @@
         "symbols7": "symbols7.x",
         "symbols9": "symbols9.x",
         "allow-eabi-extensions": false,
-        "library": "ff-gcc/lib/gcc/arm-none-eabi/10.2.1"
+        "library": "ff-gcc/lib/gcc/arm-none-eabi/10.2.1",
+	"threads": 8
 
     },
 
