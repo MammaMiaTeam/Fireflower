@@ -210,6 +210,7 @@ struct BuildSettings {
 
 	bool pedantic;
 	bool useAEABI;
+	u32 threadCount;
 
 };
 
@@ -496,7 +497,7 @@ bool loadBuildSettings(Document& root) {
 
 	buildTargetFile.close();
 
-	jsonPath = buildSettingsFilename.c_str();
+	jsonPath = fs::absolute(buildSettingsFilename.c_str());
 
 	if (!fs::exists(jsonPath) || !fs::is_regular_file(jsonPath)) {
 		std::cout << DERROR << "Could not find JSON file " << buildSettingsFilename << std::endl;
@@ -529,6 +530,8 @@ bool loadBuildSettings(Document& root) {
 
 
 bool populateBuild(Document& root, BuildSettings& settings) {
+
+	std::cout << DINFO << "Parsing build configuration" << std::endl;
 
 	if (!root["build"].IsObject()) {
 		std::cout << DERROR << "Missing JSON object 'build'" << std::endl;
@@ -630,6 +633,19 @@ bool populateBuild(Document& root, BuildSettings& settings) {
 
 	}
 
+	if (buildNode["threads"].IsInt()) {
+
+		settings.threadCount = buildNode["threads"].GetInt();
+
+		if (settings.threadCount <= 0) {
+			std::cout << DWARNING << "Invalid thread count of " << settings.threadCount << ", reverting to 1" << std::endl;
+			settings.threadCount = 1;
+		}
+
+	} else {
+		settings.threadCount = 1;
+	}
+
 	return true;
 
 }
@@ -638,6 +654,8 @@ bool populateBuild(Document& root, BuildSettings& settings) {
 
 
 bool populatePatch(Document& root, PatchSettings& settings, const OverlayTable& ovt) {
+
+	std::cout << DINFO << "Parsing patch configuration" << std::endl;
 
 	if (!root["patch"].IsObject()) {
 		std::cout << DERROR << "Missing JSON object 'patch'" << std::endl;
@@ -697,6 +715,8 @@ bool populateBinarySettings(const Value& jsonNode, PatchSettings::BinarySettings
 
 
 bool populateFileIDs(const BuildSettings& settings, Document& root, FileIDSymbols& fidSymbols) {
+
+	std::cout << DINFO << "Parsing file ID configuration" << std::endl;
 
 	if (!root["file-id"].IsObject()) {
 		return true;
@@ -773,7 +793,7 @@ bool createDirectory(const fs::path& p, const std::string& name) {
 
 bool compileSource(const BuildSettings& settings, const CodeTargetMap& codeTargets, DependencyTracker& tracker) {
 
-	std::cout << DINFO << "Started compilation scan" << std::endl;
+	std::cout << DINFO << "Scanning for compilation units" << std::endl;
 
 	const fs::path& sourcePath = settings.sourceDir;
 	std::string includeFlags;
@@ -904,17 +924,17 @@ bool compileSource(const BuildSettings& settings, const CodeTargetMap& codeTarge
 	std::cout << DINFO << "Compiling..." << std::endl;
 
 
-	constexpr const u32 threadCount = 8;
+	std::thread* threads = new std::thread[settings.threadCount];
 
-	std::thread threads[threadCount];
-
-	for (u32 i = 0; i < threadCount; i++) {
+	for (u32 i = 0; i < settings.threadCount; i++) {
 		threads[i] = std::move(std::thread(compileFunction));
 	}
 
-	for (u32 i = 0; i < threadCount; i++) {
+	for (u32 i = 0; i < settings.threadCount; i++) {
 		threads[i].join();
 	}
+
+	delete[] threads;
 
 	if (!successful) {
 
@@ -1022,6 +1042,8 @@ bool compileSet(const BuildSettings& settings, CodeTarget target, const std::set
 
 
 bool populateCodeTargets(const BuildSettings& settings, Document& root, CodeTargetMap& codeTargets) {
+
+	std::cout << DINFO << "Parsing code target configuration" << std::endl;
 
 	if (!root["main"].IsObject()) {
 		std::cout << DERROR << "Missing JSON object 'main'" << std::endl;
@@ -1285,9 +1307,9 @@ bool patchBinaries(const BuildSettings& buildSettings, const PatchSettings& patc
 	for (auto& e : fixups) {
 
 		if (std::holds_alternative<Patch>(e)) {
-			std::cout << "Patch: " << getCodeTargetName(std::get<Patch>(e).codeTarget) << ", start=0x" << std::setw(8) << std::setfill('0') << std::uppercase << std::hex << std::get<Patch>(e).ramAddress << ", size=0x" << std::get<Patch>(e).binSize << ", bss=0x" << std::get<Patch>(e).bssSize << std::endl;
+			std::cout << DINFO << "Found patch: " << getCodeTargetName(std::get<Patch>(e).codeTarget) << ", start=0x" << std::setw(8) << std::setfill('0') << std::uppercase << std::hex << std::get<Patch>(e).ramAddress << ", size=0x" << std::get<Patch>(e).binSize << ", bss=0x" << std::get<Patch>(e).bssSize << std::endl;
 		} else {
-			std::cout << "Hook: " << getCodeTargetName(std::get<Hook>(e).codeTarget) << ", hook=0x" << std::setw(8) << std::setfill('0') << std::uppercase << std::hex << std::get<Hook>(e).hookAddress << std::endl;
+			std::cout << DINFO << "Found hook: " << getCodeTargetName(std::get<Hook>(e).codeTarget) << ", hook=0x" << std::setw(8) << std::setfill('0') << std::uppercase << std::hex << std::get<Hook>(e).hookAddress << std::endl;
 		}
 
 	}
@@ -1556,6 +1578,8 @@ bool generateFileIDs(const BuildSettings& settings, const DependencyTracker& tra
 		return true;
 	}
 
+	std::cout << DINFO << "Generating file ID symbols" << std::endl;
+
 	const std::string& fntFilename = "fnt.bin";
 
 	const fs::path& fntPath = settings.nitroFSDir / fntFilename;
@@ -1687,7 +1711,7 @@ u32 readWord(const SectionMap& sections, CodeTarget target, u32 address, std::ve
 bool fixBinarySections(SectionMap& sections, CodeTarget target, u32 offset) {
 
 	if (!isBinary(target)) {
-		std::cout << "Target " << getCodeTargetName(target) << " does not represent a valid ARM binary target" << std::endl;
+		std::cout << DERROR << "Target " << getCodeTargetName(target) << " does not represent a valid ARM binary target" << std::endl;
 		return false;
 	}
 
@@ -1711,7 +1735,7 @@ bool fixBinarySections(SectionMap& sections, CodeTarget target, u32 offset) {
 bool addBinarySections(SectionMap& sections, CodeTarget target, const ARMBinaryProperties& properties, const std::vector<u8>& binary) {
 
 	if (!isBinary(target)) {
-		std::cout << "Target " << getCodeTargetName(target) << " does not represent a valid ARM binary target" << std::endl;
+		std::cout << DERROR << "Target " << getCodeTargetName(target) << " does not represent a valid ARM binary target" << std::endl;
 		return false;
 	}
 
@@ -1738,7 +1762,7 @@ bool addBinarySections(SectionMap& sections, CodeTarget target, const ARMBinaryP
 bool loadBinary(const BuildSettings& settings, CodeTarget target, ARMBinaryProperties& properties, std::vector<u8>& binary) {
 
 	if (!isBinary(target)) {
-		std::cout << "Target " << getCodeTargetName(target) << " does not represent a valid ARM binary target" << std::endl;
+		std::cout << DERROR << "Target " << getCodeTargetName(target) << " does not represent a valid ARM binary target" << std::endl;
 		return false;
 	}
 
@@ -1789,7 +1813,7 @@ void patchBinary(const BuildSettings& settings, const Patch& patchInfo, const st
 bool saveBinary(const BuildSettings& settings, CodeTarget target, const ARMBinaryProperties& properties, std::vector<u8>& binary, bool compress) {
 
 	if (!isBinary(target)) {
-		std::cout << "Target " << getCodeTargetName(target) << " does not represent a valid ARM binary target" << std::endl;
+		std::cout << DERROR << "Target " << getCodeTargetName(target) << " does not represent a valid ARM binary target" << std::endl;
 		return false;
 	}
 
@@ -1867,7 +1891,7 @@ bool saveBinary(const BuildSettings& settings, CodeTarget target, const ARMBinar
 bool loadOverlay(const BuildSettings& settings, CodeTarget target, std::vector<u8>& binary) {
 
 	if (!isOverlay(target)) {
-		std::cout << "Target " << getCodeTargetName(target) << " does not represent a valid overlay target" << std::endl;
+		std::cout << DERROR << "Target " << getCodeTargetName(target) << " does not represent a valid overlay target" << std::endl;
 		return false;
 	}
 
@@ -1899,7 +1923,7 @@ bool loadOverlay(const BuildSettings& settings, CodeTarget target, std::vector<u
 bool saveOverlay(const BuildSettings& settings, CodeTarget target, std::vector<u8>& binary, OverlayTable& ovt) {
 
 	if (!isOverlay(target)) {
-		std::cout << "Target " << getCodeTargetName(target) << " does not represent a valid overlay target" << std::endl;
+		std::cout << DERROR << "Target " << getCodeTargetName(target) << " does not represent a valid overlay target" << std::endl;
 		return false;
 	}
 
@@ -1945,7 +1969,7 @@ bool loadOverlayTable(const BuildSettings& settings, OverlayTable& ovt) {
 		std::ifstream ovtFile(ovtPath, std::ios::in | std::ios::binary);
 
 		if (!ovtFile.is_open()) {
-			std::cout << "Failed to open overlay table file " << ovtPath.string() << std::endl;
+			std::cout << DERROR << "Failed to open overlay table file " << ovtPath.string() << std::endl;
 			return false;
 		}
 
@@ -1979,7 +2003,7 @@ bool saveOverlayTable(const BuildSettings& settings, const OverlayTable& ovt) {
 		std::ofstream ovtFile(ovtPath, std::ios::out | std::ios::binary | std::ios::trunc);
 
 		if (!ovtFile.is_open()) {
-			std::cout << "Failed to open overlay table file " << ovtPath.string() << std::endl;
+			std::cout << DERROR << "Failed to open overlay table file " << ovtPath.string() << std::endl;
 			return false;
 		}
 
@@ -2495,12 +2519,12 @@ bool collectHooks(const BuildSettings& settings, CodeTargetMap& codeTargets, Hoo
 			}
 
 			if (!symtab) {
-				std::cout << "Error while parsing object file " << objPath.string() << ": Missing symbol table" << std::endl;
+				std::cout << DERROR << "Error while parsing object file " << objPath.string() << ": Missing symbol table" << std::endl;
 				return false;
 			}
 
 			if (!strtab) {
-				std::cout << "Error while parsing object file " << objPath.string() << ": Missing string table" << std::endl;
+				std::cout << DERROR << "Error while parsing object file " << objPath.string() << ": Missing string table" << std::endl;
 				return false;
 			}
 
@@ -2641,12 +2665,12 @@ bool parseElf(const BuildSettings& settings, HookSymbols& hookSymbols, std::vect
 
 
 		if (!symtab) {
-			std::cout << "Error while parsing " << elfFilename << ": Missing symbol table" << std::endl;
+			std::cout << DERROR << "Error while parsing " << elfFilename << ": Missing symbol table" << std::endl;
 			return false;
 		}
 
 		if (!strtab) {
-			std::cout << "Error while parsing " << elfFilename << ": Missing string table" << std::endl;
+			std::cout << DERROR << "Error while parsing " << elfFilename << ": Missing string table" << std::endl;
 			return false;
 		}
 
@@ -2800,7 +2824,10 @@ bool createDependencyDirectories(const BuildSettings& settings) {
 
 void loadDependencies(const BuildSettings& settings, DependencyTracker& tracker) {
 
+	std::cout << DINFO << "Loading dependencies" << std::endl;
+
 	fs::path trackerPath = settings.buildDir / "tracker.bin";
+
 	tracker.jsonLastModifiedTime = timeLastModified(jsonPath);
 
 	if (fs::exists(trackerPath) && fs::is_regular_file(trackerPath) && fs::file_size(trackerPath) > 8) {
@@ -2994,10 +3021,16 @@ bool needsCompilation(const BuildSettings& settings, const DependencyTracker& tr
 			line = line.substr(1, line.length() - 1);
 		}
 
+		//Fix for the dependency path bug from GCC
+		if (u32 bugOffset = line.find("\\:"); bugOffset != std::string::npos) {
+			line.replace(bugOffset, 2, ":");
+		}
+
 		subDep = fs::path(line);
 		std::string subDepString = getPathString(subDep);
 
 		if (!(fs::exists(subDep) && fs::is_regular_file(subDep) && tracker.dependencies.contains(subDepString) && timeLastModified(subDep) == tracker.dependencies.at(subDepString))) {
+			std::cout << subDep << "; " << timeLastModified(subDep) << "; " << tracker.dependencies.at(subDepString) << std::endl;
 			depsFile.close();
 			return true;
 		}
@@ -3055,7 +3088,7 @@ void deleteUnreferencedObjects(const BuildSettings& settings, const DependencyTr
 bool loadARMBinaryProperties(const BuildSettings& settings, CodeTarget target, const std::vector<u8>& binary, ARMBinaryProperties& properties) {
 
 	if (!isBinary(target)) {
-		std::cout << "Target " << getCodeTargetName(target) << " does not represent a valid ARM binary target" << std::endl;
+		std::cout << DERROR << "Target " << getCodeTargetName(target) << " does not represent a valid ARM binary target" << std::endl;
 		return false;
 	}
 
