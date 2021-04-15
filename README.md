@@ -1,13 +1,6 @@
 # Fireflower
 **Powerful Nintendo DS patching toolchain**
 
-## Preface
-So after almost a year I decided to pretty much finish the patcher along with the two supporting NDS tools, nds-build and nds-extract.
-Note that it is *neither* finished *nor* buildable without some build system setup and the two libraries nfsfsh.dll and blz.dll.
-
-I might add an installer and proper instructions later but for now I just want to keep the code here in case anyone is interested.
-Also, the supporting tools might be useful if you simply want to build or extract an nds file without worrying about file corruptions. Oh well.
-
 ## General
 Fireflower is the most advanced patcher for Nintendo DS games. It works fundamentally different to any currently existing patcher and aims towards performance,
 user-friendliness and practicability.
@@ -90,6 +83,7 @@ unsigned short myFileID = FID::my_file;
 ```
 
 **New keywords**
+
 Fireflower exposes new keywords to help the user in writing well-defined code:
 
 `thumb`: Causes the function to get compiled in thumb mode
