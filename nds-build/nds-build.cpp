@@ -8,6 +8,7 @@
 #include <map>
 
 #include "common.h"
+#include "crc.h"
 
 #define RKEEP ("KEEP")
 #define RADJUST ("ADJUST")
@@ -1216,10 +1217,39 @@ int main(int argc, char** argv){
 
 
 	iconSize = fs::file_size(iconPath);
-	FILESIZE_CHECK(icon, 2400)
 
 	fileStream.open(iconPath, std::ios::binary | std::ios::in);
 	FSTREAM_OPEN_CHECK(icon)
+
+	unsigned short version;
+	fileStream.read(reinterpret_cast<char*>(&version), 2);
+
+	switch (version) {
+
+	default:
+		std::cout << DWARNING << "Invalid Icon / Title ID, defaulting to 0x840" << std::endl;
+		__fallthrough;
+	case 0x0001:
+		FILESIZE_CHECK(icon, 0x0840)
+		iconSize = 0x0840;
+		break;
+	case 0x0002:
+		FILESIZE_CHECK(icon, 0x0940)
+		iconSize = 0x0940;
+		break;
+	case 0x0003:
+		FILESIZE_CHECK(icon, 0x0A40)
+		iconSize = 0x0A40;
+		break;
+	case 0x0103:
+		FILESIZE_CHECK(icon, 0x23C0)
+		iconSize = 0x23C0;
+		break;
+
+	}
+
+	fileStream.seekg(-2, std::ios::cur);
+
 	romCheckBounds(rom, romOffset, iconSize);
 	fileStream.read(reinterpret_cast<char*>(&rom[romOffset]), iconSize);
 	fileStream.close();
