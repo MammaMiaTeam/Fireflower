@@ -1228,7 +1228,7 @@ int main(int argc, char** argv){
 
 	default:
 		std::cout << DWARNING << "Invalid Icon / Title ID, defaulting to 0x840" << std::endl;
-		__fallthrough;
+		[[fallthrough]];
 	case 0x0001:
 		FILESIZE_CHECK(icon, 0x0840)
 		iconSize = 0x0840;
